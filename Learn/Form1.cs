@@ -41,6 +41,7 @@ namespace Learn
         public static extern bool ReleaseCapture();
         #endregion
 
+        #region Private Variables
         IniFile iniFile = new IniFile();
         private static System.Windows.Forms.Timer aTimer;
         private int totalCount = 0;
@@ -49,6 +50,7 @@ namespace Learn
 
         private Bases currentBase = null;
         private Vocabulary currentWorld = null;
+        #endregion
 
         #region INIT
         public Form1()
@@ -97,6 +99,49 @@ namespace Learn
 
         }
 
+        private void AddNewVocabulary()
+        {
+            using (var form = new gorm2())
+            {
+                if (form.ShowDialog(this) == DialogResult.OK)
+                {
+                    Bases currentItem = null;
+                    DataBase.realm.Write(() =>
+                    {
+                        currentItem = DataBase.realm.Add(new Bases()
+                        {
+                            Name = form.Name,
+                            Description = form.Description,
+                            Language = form.Language,
+                        });
+
+                        LoadWorldsNew(form.FileName, currentItem.Vocabulary);
+                    });
+                    SetActivaeVocabulary(currentItem);
+                    InitMenu();
+                }
+            }
+        }
+        private void SetActivaeVocabulary(Bases bases)
+        {
+            DataBase.realm.Write(() =>
+            {
+                if (currentBase != null)
+                    currentBase.Active = false;
+
+                bases.Active = true;
+            });
+
+            currentBase = bases;
+            GetNextWorld();
+            SetWorld();
+            InitMenu();
+        }
+
+
+        #endregion
+
+        #region INIT MENU
         private void InitMenu()
         {
             var cm = new ContextMenuStrip();
@@ -185,45 +230,6 @@ namespace Learn
             this.ContextMenuStrip = cm;
         }
 
-        private void AddNewVocabulary()
-        {
-            using (var form = new gorm2())
-            {
-                if (form.ShowDialog(this) == DialogResult.OK)
-                {
-                    Bases currentItem = null;
-                    DataBase.realm.Write(() =>
-                    {
-                        currentItem = DataBase.realm.Add(new Bases()
-                        {
-                            Name = form.Name,
-                            Description = form.Description,
-                            Language = form.Language,
-                        });
-
-                        LoadWorldsNew(form.FileName, currentItem.Vocabulary);
-                    });
-                    SetActivaeVocabulary(currentItem);
-                    InitMenu();
-                }
-            }
-        }
-        private void SetActivaeVocabulary(Bases bases)
-        {
-            DataBase.realm.Write(() =>
-            {
-                if (currentBase != null)
-                    currentBase.Active = false;
-
-                bases.Active = true;
-            });
-
-            currentBase = bases;
-            GetNextWorld();
-            SetWorld();
-            InitMenu();
-        }
-
         private ToolStripMenuItem CreateStripMenuItem(string name, Action method, Bitmap bitmap = null)
         {
             var item = new ToolStripMenuItem(name);
@@ -233,63 +239,9 @@ namespace Learn
 
             return item;
         }
-
-        private void InitMenu2()
-        {
-            /* ContextMenu cm = new ContextMenu();
-             cm.MenuItems.Add(new MenuItem("Load Vocabulary", new EventHandler(LoadVocabulary)));
-             MenuItem tm = new MenuItem("Time Interval");
-             tm = new MenuItem("Show Base");
-             tm.MenuItems.Add(new MenuItem("Show Vocabulary", new EventHandler(ShowDataBase)));
-             tm.MenuItems.Add(new MenuItem("Show Remembered Word", new EventHandler(ShowRememberedWord)));
-             cm.MenuItems.Add(tm);
-             cm.MenuItems.Add("-");
-             tm = new MenuItem("Time Interval");
-             var time = Int32.Parse(iniFile.Read("timer", "Main"));
-             tm.MenuItems.Add(CreateMenuItem("2 sec", () => { SetTimerInterval(1000 * 2); }));
-             tm.MenuItems.Add(CreateMenuItem("10 sec", () => { SetTimerInterval(1000 * 10); }));
-             tm.MenuItems.Add(CreateMenuItem("1 min", () => { SetTimerInterval(1000 * 60); }));
-             tm.MenuItems.Add(CreateMenuItem("5 min", () => { SetTimerInterval(1000 * 60 * 5); }));
-             tm.MenuItems.Add(CreateMenuItem("10 min", () => { SetTimerInterval(1000 * 60 * 10); }));
-             tm.MenuItems.Add(CreateMenuItem("20 min", () => { SetTimerInterval(1000 * 60 * 202); }));
-             cm.MenuItems.Add(tm);
-             cm.MenuItems.Add("-");
-             cm.MenuItems.Add(new MenuItem("Clean Vocabulary", new EventHandler(CleanVocabulary)));
-             cm.MenuItems.Add(new MenuItem("Clean Remembered World", new EventHandler(CleanRememberedWorld)));
-
-             cm.MenuItems.Add("-");
-             cm.MenuItems.Add(new MenuItem("Exit", new EventHandler(Exit)));
-             this.ContextMenu = cm;*/
-
-
-        }
-
-        private MenuItem CreateMenuItem(string name, Action method, bool showIco = false)
-        {
-            var item = new MenuItem(name, new EventHandler((object sender, EventArgs e) => { method(); }));
-
-            var ico = Properties.Resources.okmini;
-            item.OwnerDraw = false;
-            if (showIco)
-                item.DrawItem += delegate (object sender, DrawItemEventArgs e)
-                {
-                    double factor = (double)e.Bounds.Height / ico.Height;
-                    var rect = new Rectangle(e.Bounds.X, e.Bounds.Y,
-                                         (int)(ico.Width * factor),
-                                         (int)(ico.Height * factor));
-                    e.Graphics.DrawImage(ico, rect);
-                };
-
-            return item;
-        }
         #endregion
 
-        private void OnTimedEvent(Object source, EventArgs e)
-        {
-            ShowForm();
-            Console.WriteLine("The Elapsed event was raised at ");
-        }
-
+        #region UI
         private void GetNextWorld()
         {
             if (currentBase == null)
@@ -351,13 +303,7 @@ namespace Learn
             this.Refresh();
 
         }
-
-        void SetTimerInterval(int interval)
-        {
-            aTimer.Interval = interval;
-            iniFile.Write("timer", "" + interval, "Main");
-            InitMenu();
-        }
+        #endregion
 
         #region Database
         private void InitDataBase()
@@ -620,11 +566,6 @@ namespace Learn
         }
         #endregion
 
-        private void pictureBox3_Click(object sender, EventArgs e)
-        {
-            ShowUrl();
-        }
-
         #region Show Data Base
 
 
@@ -746,6 +687,33 @@ namespace Learn
         #endregion
 
         #region FORM
+        private void Exit()
+        {
+            this.Close();
+        }
+
+        void ShowForm()
+        {
+            aTimer.Stop();
+            Show();
+            this.WindowState = FormWindowState.Normal;
+            notifyIcon.Visible = false;
+        }
+
+        private void HideForm()
+        {
+            GetNextWorld();
+            SetWorld();
+            Hide();
+            notifyIcon.Visible = true;
+            aTimer.Start();
+        }
+
+        private void pictureBox3_Click(object sender, EventArgs e)
+        {
+            ShowUrl();
+        }
+
         private void notifyIcon_DoubleClick(object sender, EventArgs e)
         {
             ShowForm();
@@ -790,26 +758,17 @@ namespace Learn
         }
         #endregion
 
-        private void Exit()
+        private void OnTimedEvent(Object source, EventArgs e)
         {
-            this.Close();
+            ShowForm();
+            Console.WriteLine("The Elapsed event was raised at ");
         }
 
-        void ShowForm()
+        void SetTimerInterval(int interval)
         {
-            aTimer.Stop();
-            Show();
-            this.WindowState = FormWindowState.Normal;
-            notifyIcon.Visible = false;
-        }
-
-        private void HideForm()
-        {
-            GetNextWorld();
-            SetWorld();
-            Hide();
-            notifyIcon.Visible = true;
-            aTimer.Start();
+            aTimer.Interval = interval;
+            iniFile.Write("timer", "" + interval, "Main");
+            InitMenu();
         }
 
         public static string FirstCharToUpper(string input)
@@ -819,6 +778,7 @@ namespace Learn
             return input.First().ToString().ToUpper() + String.Join("", input.Skip(1));
         }
 
+        #region Double click
         System.Windows.Forms.Timer timer;
         int clickCount = 0;
 
@@ -847,6 +807,7 @@ namespace Learn
             }
             clickCount = 0;
         }
+        #endregion
 
         #region Voice
         private bool speck = false;
