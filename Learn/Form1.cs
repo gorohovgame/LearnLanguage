@@ -70,8 +70,8 @@ namespace Learn
             GetNextWorld();
             SetWorld();
             InitTimer();
-
         }
+
         private void SetFormPosition()
         {
             Rectangle workingArea = Screen.GetWorkingArea(this);
@@ -98,48 +98,6 @@ namespace Learn
             aTimer.Tick += new EventHandler(OnTimedEvent);
 
         }
-
-        private void AddNewVocabulary()
-        {
-            using (var form = new gorm2())
-            {
-                if (form.ShowDialog(this) == DialogResult.OK)
-                {
-                    Bases currentItem = null;
-                    DataBase.realm.Write(() =>
-                    {
-                        currentItem = DataBase.realm.Add(new Bases()
-                        {
-                            Name = form.Name,
-                            Description = form.Description,
-                            Language = form.Language,
-                        });
-
-                        LoadWorldsNew(form.FileName, currentItem.Vocabulary);
-                    });
-                    SetActivaeVocabulary(currentItem);
-                    InitMenu();
-                }
-            }
-        }
-        private void SetActivaeVocabulary(Bases bases)
-        {
-            DataBase.realm.Write(() =>
-            {
-                if (currentBase != null)
-                    currentBase.Active = false;
-
-                bases.Active = true;
-            });
-
-            currentBase = bases;
-            GetNextWorld();
-            SetWorld();
-            InitMenu();
-        }
-
-
-        #endregion
 
         #region INIT MENU
         private void InitMenu()
@@ -239,6 +197,7 @@ namespace Learn
 
             return item;
         }
+        #endregion
         #endregion
 
         #region UI
@@ -379,27 +338,6 @@ namespace Learn
                 DataBase.realm.RemoveAll<RememberedWord>();
             });
 
-        }
-
-        private void CleanVocabulary()
-        {
-
-            DataBase.realm.Write(() =>
-            {
-                DataBase.realm.RemoveAll<Vocabulary>();
-            });
-            GetNextWorld();
-            SetWorld();
-        }
-
-        private void CleanRememberedWorld()
-        {
-            DataBase.realm.Write(() =>
-            {
-                DataBase.realm.RemoveAll<RememberedWord>();
-            });
-            GetNextWorld();
-            SetWorld();
         }
 
         private Vocabulary GetEmptyVocabulary()
@@ -564,11 +502,49 @@ namespace Learn
                 });
             }
         }
+
+        private void AddNewVocabulary()
+        {
+            using (var form = new gorm2())
+            {
+                if (form.ShowDialog(this) == DialogResult.OK)
+                {
+                    Bases currentItem = null;
+                    DataBase.realm.Write(() =>
+                    {
+                        currentItem = DataBase.realm.Add(new Bases()
+                        {
+                            Name = form.Name,
+                            Description = form.Description,
+                            Language = form.Language,
+                        });
+
+                        LoadWorldsNew(form.FileName, currentItem.Vocabulary);
+                    });
+                    SetActivaeVocabulary(currentItem);
+                    InitMenu();
+                }
+            }
+        }
+
+        private void SetActivaeVocabulary(Bases bases)
+        {
+            DataBase.realm.Write(() =>
+            {
+                if (currentBase != null)
+                    currentBase.Active = false;
+
+                bases.Active = true;
+            });
+
+            currentBase = bases;
+            GetNextWorld();
+            SetWorld();
+            InitMenu();
+        }
         #endregion
 
         #region Show Data Base
-
-
         private void ShowUrl()
         {
             if (currentWorld.URL == null || currentWorld.URL == String.Empty)
@@ -614,6 +590,7 @@ namespace Learn
                 form.Dispose();
             }
         }
+
         private void ShowDataBase()
         {
             using (Form form = new Form())
@@ -832,9 +809,9 @@ namespace Learn
             var synthesizer = new SpeechSynthesizer();
             synthesizer.SetOutputToDefaultAudioDevice();
 
-           
 
-                synthesizer.SelectVoice(voice);
+
+            synthesizer.SelectVoice(voice);
 
 
             synthesizer.Speak(currentWorld.Learn);
